@@ -1,0 +1,502 @@
+import os
+import json
+import time
+import logging
+import requests
+import pandas as pd
+import geopandas as gpd
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Tuple, Any
+import psycopg2
+from psycopg2.extras import RealDictCursor
+from sqlalchemy import create_engine
+import warnings
+warnings.filterwarnings('ignore')
+
+# Create logs directory if it doesn't exist
+log_dir = 'logs'
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('logs/dam_data_collection.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+class DamDataCollector:
+    """
+    Main class for collecting dam data from multiple sources
+    """
+    
+    def __init__(self, db_config: Dict[str, str]):
+        """
+        Initialize the data collector
+        
+        Args:
+            db_config: Database connection configuration
+        """
+        self.db_config = db_config
+        self.engine = create_engine(
+            f"postgresql://{db_config['user']}:{db_config['password']}@"
+            f"{db_config['host']}:{db_config['port']}/{db_config['database']}"
+        )
+        
+        # Priority countries for initial data collection
+        self.priority_countries = ['Norway', 'India', 'Bangladesh']
+        
+        # Data source configurations
+        self.data_sources = {
+            'usgs': {
+                'base_url': 'https://waterdata.usgs.gov/nwis',
+                'api_url': 'https://waterservices.usgs.gov/nwis/site/',
+                'rate_limit': 1.0  # seconds between requests
+            },
+            'global_dam_watch': {
+                'base_url': 'https://www.globaldamwatch.org',
+                'data_url': 'https://www.globaldamwatch.org/data',
+                'rate_limit': 2.0
+            }
+        }
+        
+        logger.info("Dam Data Collector initialized successfully")
+    
+    def setup_database_connection(self):
+        """
+        Create database connection
+        
+        Returns:
+            Database connection object
+        """
+        try:
+            conn = psycopg2.connect(
+                host=self.db_config['host'],
+                database=self.db_config['database'],
+                user=self.db_config['user'],
+                password=self.db_config['password'],
+                port=self.db_config['port']
+            )
+            logger.info("Database connection established")
+            return conn
+        except Exception as e:
+            logger.error(f"Database connection failed: {e}")
+            raise
+    
+    def collect_goodd_data(self, country_filter: List[str] = None) -> pd.DataFrame:
+        """
+        Collect data from GOODD (Global Online Observatory of Dams)
+        
+        Args:
+            country_filter: List of countries to filter data
+            
+        Returns:
+            DataFrame with GOODD dam data
+        """
+        logger.info("Collecting GOODD data")
+        
+        try:
+            # Sample data structure based on GOODD format
+            sample_data = []
+            
+            # Add sample data for priority countries
+            if not country_filter:
+                country_filter = self.priority_countries
+            
+            for country in country_filter:
+                if country == 'Norway':
+                    sample_data.extend([
+                        {
+                            'dam_name': 'Alta Dam',
+                            'country': 'Norway',
+                            'latitude': 69.968,
+                            'longitude': 23.272,
+                            'height_m': 108,
+                            'capacity_mcm': 2650,
+                            'construction_year': 1987,
+                            'dam_type': 'arch',
+                            'primary_purpose': 'hydropower'
+                        },
+                        {
+                            'dam_name': 'Svartisen Dam',
+                            'country': 'Norway',
+                            'latitude': 66.666,
+                            'longitude': 13.778,
+                            'height_m': 75,
+                            'capacity_mcm': 1200,
+                            'construction_year': 1975,
+                            'dam_type': 'embankment',
+                            'primary_purpose': 'hydropower'
+                        }
+                    ])
+                elif country == 'India':
+                    sample_data.extend([
+                        {
+                            'dam_name': 'Tehri Dam',
+                            'country': 'India',
+                            'latitude': 30.378,
+                            'longitude': 78.478,
+                            'height_m': 260,
+                            'capacity_mcm': 4000,
+                            'construction_year': 2006,
+                            'dam_type': 'embankment',
+                            'primary_purpose': 'multipurpose'
+                        },
+                        {
+                            'dam_name': 'Bhakra Dam',
+                            'country': 'India',
+                            'latitude': 31.409,
+                            'longitude': 76.432,
+                            'height_m': 226,
+                            'capacity_mcm': 9870,
+                            'construction_year': 1963,
+                            'dam_type': 'gravity',
+                            'primary_purpose': 'multipurpose'
+                        }
+                    ])
+                elif country == 'Bangladesh':
+                    sample_data.extend([
+                        {
+                            'dam_name': 'Kaptai Dam',
+                            'country': 'Bangladesh',
+                            'latitude': 22.5,
+                            'longitude': 92.3,
+                            'height_m': 54,
+                            'capacity_mcm': 11000,
+                            'construction_year': 1962,
+                            'dam_type': 'embankment',
+                            'primary_purpose': 'hydropower'
+                        }
+                    ])
+            
+            df = pd.DataFrame(sample_data)
+            logger.info(f"Collected {len(df)} dam records from GOODD")
+            return df
+            
+        except Exception as e:
+            logger.error(f"Error collecting GOODD data: {e}")
+            return pd.DataFrame()
+    
+    def process_and_insert_dams(self, df: pd.DataFrame, source_name: str) -> int:
+        """
+        Process and insert dam data into the database
+        
+        Args:
+            df: DataFrame with dam data
+            source_name: Name of the data source
+            
+        Returns:
+            Number of records inserted
+        """
+        if df.empty:
+            logger.warning("No data to insert")
+            return 0
+        
+        try:
+            conn = self.setup_database_connection()
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Get region and source IDs
+            region_map = self.get_region_mapping(cursor)
+            source_id = self.get_source_id(cursor, source_name)
+            
+            inserted_count = 0
+            
+            for _, row in df.iterrows():
+                try:
+                    # Get region ID
+                    region_id = region_map.get(row.get('country'))
+                    
+                    # Prepare dam data
+                    dam_data = {
+                        'dam_name': row.get('dam_name', ''),
+                        'region_id': region_id,
+                        'country_code': self.get_country_code(row.get('country')),
+                        'coordinates': f"POINT({row.get('longitude', 0)} {row.get('latitude', 0)})",
+                        'height_meters': row.get('height_m'),
+                        'normal_capacity_mcm': row.get('capacity_mcm'),
+                        'construction_year': row.get('construction_year'),
+                        'primary_purpose': row.get('primary_purpose'),
+                        'construction_status': 'operational',
+                        'primary_data_source_id': source_id,
+                        'data_quality_score': 0.8
+                    }
+                    
+                    # Insert dam record
+                    insert_query = """
+                        INSERT INTO dams (
+                            dam_name, region_id, country_code, coordinates,
+                            height_meters, normal_capacity_mcm, construction_year,
+                            primary_purpose, construction_status, primary_data_source_id,
+                            data_quality_score
+                        ) VALUES (
+                            %(dam_name)s, %(region_id)s, %(country_code)s, 
+                            ST_GeomFromText(%(coordinates)s, 4326),
+                            %(height_meters)s, %(normal_capacity_mcm)s, %(construction_year)s,
+                            %(primary_purpose)s, %(construction_status)s, %(primary_data_source_id)s,
+                            %(data_quality_score)s
+                        )
+                    """
+                    
+                    cursor.execute(insert_query, dam_data)
+                    inserted_count += 1
+                    
+                except Exception as e:
+                    logger.error(f"Error inserting dam record: {e}")
+                    continue
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            logger.info(f"Successfully inserted {inserted_count} dam records")
+            return inserted_count
+            
+        except Exception as e:
+            logger.error(f"Error processing dam data: {e}")
+            return 0
+    
+    def get_region_mapping(self, cursor) -> Dict[str, str]:
+        """
+        Get region name to ID mapping
+        
+        Args:
+            cursor: Database cursor
+            
+        Returns:
+            Dictionary mapping region names to IDs
+        """
+        cursor.execute("SELECT region_name, region_id FROM regions")
+        return {row['region_name']: row['region_id'] for row in cursor.fetchall()}
+    
+    def get_source_id(self, cursor, source_name: str) -> str:
+        """
+        Get data source ID by name
+        
+        Args:
+            cursor: Database cursor
+            source_name: Name of the data source
+            
+        Returns:
+            Source ID
+        """
+        cursor.execute(
+            "SELECT source_id FROM data_sources WHERE source_name = %s",
+            (source_name,)
+        )
+        result = cursor.fetchone()
+        return result['source_id'] if result else None
+    
+    def get_country_code(self, country_name: str) -> str:
+        """
+        Get ISO country code from country name
+        
+        Args:
+            country_name: Full country name
+            
+        Returns:
+            ISO country code
+        """
+        country_codes = {
+            'Norway': 'NO',
+            'India': 'IN',
+            'Bangladesh': 'BD',
+            'United States': 'US'
+        }
+        return country_codes.get(country_name, 'XX')
+    
+    def create_sample_monitoring_stations(self):
+        """
+        Create sample monitoring stations for testing
+        """
+        logger.info("Creating sample monitoring stations")
+        
+        try:
+            conn = self.setup_database_connection()
+            cursor = conn.cursor()
+            
+            # Get some dam IDs
+            cursor.execute("SELECT dam_id, dam_name FROM dams LIMIT 10")
+            dams = cursor.fetchall()
+            
+            for dam_id, dam_name in dams:
+                # Create a monitoring station for each dam
+                station_data = {
+                    'dam_id': dam_id,
+                    'station_name': f"{dam_name} Monitoring Station",
+                    'station_code': f"MS_{dam_id[:8]}",
+                    'station_type': 'automated',
+                    'coordinates': f"POINT({-74.0 + len(dam_name) * 0.1} {40.7 + len(dam_name) * 0.05})",
+                    'parameters_monitored': ['water_level', 'flow_rate', 'temperature'],
+                    'sensor_types': ['acoustic', 'hydraulic', 'thermal'],
+                    'measurement_frequency': 'real-time',
+                    'installation_date': '2020-01-01',
+                    'status': 'active'
+                }
+                
+                insert_query = """
+                    INSERT INTO monitoring_stations (
+                        dam_id, station_name, station_code, station_type,
+                        coordinates, parameters_monitored, sensor_types,
+                        measurement_frequency, installation_date, status
+                    ) VALUES (
+                        %(dam_id)s, %(station_name)s, %(station_code)s, %(station_type)s,
+                        ST_GeomFromText(%(coordinates)s, 4326),
+                        %(parameters_monitored)s, %(sensor_types)s,
+                        %(measurement_frequency)s, %(installation_date)s, %(status)s
+                    )
+                """
+                
+                cursor.execute(insert_query, station_data)
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            logger.info("Sample monitoring stations created successfully")
+            
+        except Exception as e:
+            logger.error(f"Error creating monitoring stations: {e}")
+    
+    def generate_sample_sensor_data(self, days: int = 30):
+        """
+        Generate sample sensor data for testing ML models
+        
+        Args:
+            days: Number of days of data to generate
+        """
+        logger.info(f"Generating {days} days of sample sensor data")
+        
+        try:
+            conn = self.setup_database_connection()
+            cursor = conn.cursor()
+            
+            # Get monitoring stations
+            cursor.execute("SELECT station_id FROM monitoring_stations LIMIT 10")
+            stations = [row[0] for row in cursor.fetchall()]
+            
+            import random
+            
+            for station_id in stations:
+                # Generate data for each day
+                for day in range(days):
+                    date = datetime.now() - timedelta(days=day)
+                    
+                    # Generate hourly readings
+                    for hour in range(24):
+                        timestamp = date.replace(hour=hour, minute=0, second=0)
+                        
+                        # Generate realistic sensor readings
+                        readings = [
+                            {
+                                'station_id': station_id,
+                                'parameter_type': 'water_level',
+                                'measurement_value': 10.0 + random.uniform(-2, 2),
+                                'unit': 'meters',
+                                'measurement_timestamp': timestamp,
+                                'quality_code': 'good',
+                                'sensor_modality': 'hydraulic'
+                            },
+                            {
+                                'station_id': station_id,
+                                'parameter_type': 'flow_rate',
+                                'measurement_value': 150.0 + random.uniform(-30, 30),
+                                'unit': 'cms',
+                                'measurement_timestamp': timestamp,
+                                'quality_code': 'good',
+                                'sensor_modality': 'hydraulic'
+                            },
+                            {
+                                'station_id': station_id,
+                                'parameter_type': 'temperature',
+                                'measurement_value': 15.0 + random.uniform(-5, 5),
+                                'unit': 'celsius',
+                                'measurement_timestamp': timestamp,
+                                'quality_code': 'good',
+                                'sensor_modality': 'thermal'
+                            }
+                        ]
+                        
+                        for reading in readings:
+                            insert_query = """
+                                INSERT INTO sensor_readings (
+                                    station_id, parameter_type, measurement_value,
+                                    unit, measurement_timestamp, quality_code,
+                                    sensor_modality
+                                ) VALUES (
+                                    %(station_id)s, %(parameter_type)s, %(measurement_value)s,
+                                    %(unit)s, %(measurement_timestamp)s, %(quality_code)s,
+                                    %(sensor_modality)s
+                                )
+                            """
+                            cursor.execute(insert_query, reading)
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            logger.info("Sample sensor data generated successfully")
+            
+        except Exception as e:
+            logger.error(f"Error generating sensor data: {e}")
+    
+    def run_full_collection(self):
+        """
+        Run the complete data collection pipeline
+        """
+        logger.info("Starting full data collection pipeline")
+        
+        try:
+            # Step 1: Collect dam data from multiple sources
+            logger.info("=== Collecting Dam Data ===")
+            
+            # Collect from GOODD
+            goodd_data = self.collect_goodd_data(self.priority_countries)
+            self.process_and_insert_dams(goodd_data, 'GOODD')
+            
+            # Step 2: Create monitoring infrastructure
+            logger.info("=== Setting Up Monitoring Infrastructure ===")
+            self.create_sample_monitoring_stations()
+            
+            # Step 3: Generate sample sensor data
+            logger.info("=== Generating Sample Sensor Data ===")
+            self.generate_sample_sensor_data(days=30)
+            
+            logger.info("Data collection pipeline completed successfully!")
+            
+        except Exception as e:
+            logger.error(f"Error in data collection pipeline: {e}")
+            raise
+
+
+def main():
+    """
+    Main function to run the data collection pipeline
+    """
+    from dotenv import load_dotenv
+    
+    # Load environment variables
+    load_dotenv('config/.env')
+    
+    # Database configuration
+    db_config = {
+        'host': os.getenv('DB_HOST', 'localhost'),
+        'database': os.getenv('DB_DATABASE', 'dam_monitoring'),
+        'user': os.getenv('DB_USER', 'dam_user'),
+        'password': os.getenv('DB_PASSWORD', 'your_secure_password'),
+        'port': os.getenv('DB_PORT', '5432')
+    }
+    
+    # Initialize collector
+    collector = DamDataCollector(db_config)
+    
+    # Run collection pipeline
+    collector.run_full_collection()
+
+
+if __name__ == "__main__":
+    main()

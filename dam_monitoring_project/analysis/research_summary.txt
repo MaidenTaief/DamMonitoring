@@ -1,0 +1,13 @@
+DAM MONITORING RESEARCH DATASET SUMMARY
+==================================================
+
+Total Dams: 10
+Countries: 3
+Tallest Dam: Tehri Dam
+Largest Capacity: Kaptai Dam
+Total Sensor Readings: 32400
+Date Range Days: 29
+Parameters Monitored: 3
+Sensor Modalities: 2
+
+Generated: 2025-07-21 21:46:25

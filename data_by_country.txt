@@ -1,0 +1,7 @@
+ region_name | dam_count | station_count | sensor_reading_count 
+-------------+-----------+---------------+----------------------
+ India       |         4 |             6 |                12960
+ Norway      |         4 |             6 |                12960
+ Bangladesh  |         2 |             3 |                 6480
+(3 rows)
+

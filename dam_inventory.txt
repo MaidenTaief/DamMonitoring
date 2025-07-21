@@ -1,0 +1,14 @@
+   dam_name    | region_name | height_meters | normal_capacity_mcm | construction_year | primary_dam_type 
+---------------+-------------+---------------+---------------------+-------------------+------------------
+ Kaptai Dam    | Bangladesh  |         54.00 |            11000.00 |              1962 | 
+ Kaptai Dam    | Bangladesh  |         54.00 |            11000.00 |              1962 | 
+ Tehri Dam     | India       |        260.00 |             4000.00 |              2006 | 
+ Tehri Dam     | India       |        260.00 |             4000.00 |              2006 | 
+ Bhakra Dam    | India       |        226.00 |             9870.00 |              1963 | 
+ Bhakra Dam    | India       |        226.00 |             9870.00 |              1963 | 
+ Alta Dam      | Norway      |        108.00 |             2650.00 |              1987 | 
+ Alta Dam      | Norway      |        108.00 |             2650.00 |              1987 | 
+ Svartisen Dam | Norway      |         75.00 |             1200.00 |              1975 | 
+ Svartisen Dam | Norway      |         75.00 |             1200.00 |              1975 | 
+(10 rows)
+
