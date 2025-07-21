@@ -405,6 +405,68 @@ ALTER TABLE dams ADD CONSTRAINT check_construction_year_reasonable
     CHECK (construction_year IS NULL OR (construction_year >= 1800 AND construction_year <= 2050));
 
 -- ==========================================
+-- STRUCTURAL HEALTH MONITORING TABLES
+-- ==========================================
+
+-- SHM-specific sensor configurations
+CREATE TABLE shm_sensors (
+    sensor_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    station_id UUID REFERENCES monitoring_stations(station_id),
+    sensor_type VARCHAR(50) NOT NULL, -- strain_gauge, fiber_optic, accelerometer, etc.
+    sensor_model VARCHAR(100),
+    installation_location TEXT, -- 'crest_center', 'base_upstream', etc.
+    measurement_range_min DECIMAL(10,4),
+    measurement_range_max DECIMAL(10,4),
+    sampling_rate_hz INTEGER,
+    calibration_factor DECIMAL(10,6),
+    installation_date DATE,
+    last_calibration DATE,
+    status VARCHAR(20) DEFAULT 'active'
+);
+
+-- Dam structural incidents for analysis
+CREATE TABLE dam_incidents (
+    incident_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    dam_id UUID REFERENCES dams(dam_id),
+    incident_date TIMESTAMP NOT NULL,
+    incident_type VARCHAR(100), -- collapse, crack, seepage, overflow, cloudburst_impact
+    severity VARCHAR(50), -- minor, moderate, severe, catastrophic
+    cause_primary VARCHAR(200),
+    cause_secondary TEXT[],
+    weather_condition VARCHAR(100),
+    precipitation_24h_mm DECIMAL(8,2),
+    peak_discharge_cms DECIMAL(12,2),
+    structural_damage_description TEXT,
+    casualties INTEGER DEFAULT 0,
+    evacuated_population INTEGER,
+    damage_cost_usd DECIMAL(15,2),
+    repair_duration_days INTEGER,
+    data_source VARCHAR(200),
+    verified BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Extreme weather events for climate analysis
+CREATE TABLE extreme_weather_events (
+    event_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    dam_id UUID REFERENCES dams(dam_id),
+    event_date TIMESTAMP NOT NULL,
+    event_type VARCHAR(50), -- cloudburst, flood, earthquake, extreme_rainfall
+    intensity_value DECIMAL(10,4),
+    intensity_unit VARCHAR(20),
+    duration_hours DECIMAL(6,2),
+    affected_area_km2 DECIMAL(10,2),
+    max_precipitation_mm DECIMAL(8,2),
+    return_period_years INTEGER,
+    impact_on_dam TEXT,
+    data_source VARCHAR(200)
+);
+
+CREATE INDEX idx_shm_sensors_type ON shm_sensors(sensor_type);
+CREATE INDEX idx_incidents_dam_date ON dam_incidents(dam_id, incident_date);
+CREATE INDEX idx_weather_events_type ON extreme_weather_events(event_type);
+
+-- ==========================================
 -- PERFORMANCE OPTIMIZATION INDEXES
 -- ==========================================
 

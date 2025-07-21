@@ -25,3 +25,14 @@ jupyter==1.0.0
 scikit-learn==1.3.0
 torch==2.0.1
 transformers==4.32.0 
+
+# Machine Learning
+torch==2.0.1
+transformers==4.32.0
+scikit-learn==1.3.0
+
+# Real-time APIs
+aiohttp==3.8.5
+
+# Additional visualization
+plotly==5.15.0 

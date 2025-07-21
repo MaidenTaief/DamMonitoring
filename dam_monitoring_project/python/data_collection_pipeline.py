@@ -444,6 +444,195 @@ class DamDataCollector:
         except Exception as e:
             logger.error(f"Error generating sensor data: {e}")
     
+    def create_shm_sensors(self):
+        """Create structural health monitoring sensors"""
+        logger.info("Creating SHM sensors for dams")
+        
+        shm_sensor_configs = [
+            {
+                'type': 'strain_gauge',
+                'locations': ['crest_center', 'base_upstream', 'base_downstream'],
+                'sampling_rate': 100,
+                'range_min': -3000,
+                'range_max': 3000,
+                'unit': 'microstrain'
+            },
+            {
+                'type': 'fiber_optic',
+                'locations': ['spillway', 'gallery', 'foundation'],
+                'sampling_rate': 1000,
+                'range_min': -5000,
+                'range_max': 5000,
+                'unit': 'microstrain'
+            },
+            {
+                'type': 'accelerometer',
+                'locations': ['crest_center', 'abutment_left', 'abutment_right'],
+                'sampling_rate': 200,
+                'range_min': -2,
+                'range_max': 2,
+                'unit': 'g'
+            },
+            {
+                'type': 'tiltmeter',
+                'locations': ['crest_center', 'downstream_face'],
+                'sampling_rate': 1,
+                'range_min': -10,
+                'range_max': 10,
+                'unit': 'degrees'
+            },
+            {
+                'type': 'piezometer',
+                'locations': ['foundation', 'embankment_core'],
+                'sampling_rate': 1,
+                'range_min': 0,
+                'range_max': 1000,
+                'unit': 'kPa'
+            }
+        ]
+        
+        try:
+            conn = self.setup_database_connection()
+            cursor = conn.cursor()
+            
+            # Get monitoring stations
+            cursor.execute("SELECT station_id FROM monitoring_stations")
+            stations = cursor.fetchall()
+            
+            for station_id, in stations:
+                for sensor_config in shm_sensor_configs:
+                    for location in sensor_config['locations']:
+                        sensor_data = {
+                            'station_id': station_id,
+                            'sensor_type': sensor_config['type'],
+                            'sensor_model': f"{sensor_config['type'].upper()}_2024",
+                            'installation_location': location,
+                            'measurement_range_min': sensor_config['range_min'],
+                            'measurement_range_max': sensor_config['range_max'],
+                            'sampling_rate_hz': sensor_config['sampling_rate'],
+                            'calibration_factor': 1.0,
+                            'installation_date': '2024-01-01',
+                            'status': 'active'
+                        }
+                        
+                        insert_query = """
+                            INSERT INTO shm_sensors (
+                                station_id, sensor_type, sensor_model, installation_location,
+                                measurement_range_min, measurement_range_max, sampling_rate_hz,
+                                calibration_factor, installation_date, status
+                            ) VALUES (
+                                %(station_id)s, %(sensor_type)s, %(sensor_model)s, %(installation_location)s,
+                                %(measurement_range_min)s, %(measurement_range_max)s, %(sampling_rate_hz)s,
+                                %(calibration_factor)s, %(installation_date)s, %(status)s
+                            )
+                        """
+                        cursor.execute(insert_query, sensor_data)
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            logger.info("SHM sensors created successfully")
+            
+        except Exception as e:
+            logger.error(f"Error creating SHM sensors: {e}")
+
+    def generate_shm_sensor_data(self, days: int = 30):
+        """Generate structural health monitoring sensor data"""
+        logger.info(f"Generating {days} days of SHM sensor data")
+        
+        try:
+            conn = self.setup_database_connection()
+            cursor = conn.cursor()
+            
+            # Get SHM sensors
+            cursor.execute("""
+                SELECT s.sensor_id, s.sensor_type, s.measurement_range_min, 
+                       s.measurement_range_max, ms.station_id
+                FROM shm_sensors s
+                JOIN monitoring_stations ms ON s.station_id = ms.station_id
+                WHERE s.status = 'active'
+            """)
+            sensors = cursor.fetchall()
+            
+            import random
+            import numpy as np
+            
+            for sensor_id, sensor_type, range_min, range_max, station_id in sensors:
+                # Convert to float to avoid decimal/float errors
+                range_min = float(range_min)
+                range_max = float(range_max)
+                for day in range(days):
+                    date = datetime.now() - timedelta(days=day)
+                    
+                    # Generate hourly readings with realistic patterns
+                    for hour in range(24):
+                        timestamp = date.replace(hour=hour, minute=0, second=0)
+                        
+                        # Base value depends on sensor type
+                        if sensor_type == 'strain_gauge':
+                            base_value = 50 + 10 * np.sin(hour * np.pi / 12)  # Daily thermal cycle
+                            noise = random.gauss(0, 5)
+                        elif sensor_type == 'accelerometer':
+                            base_value = 0.001  # Near zero for normal conditions
+                            noise = random.gauss(0, 0.0005)
+                        elif sensor_type == 'tiltmeter':
+                            base_value = 0.1 + 0.05 * np.sin(hour * np.pi / 12)
+                            noise = random.gauss(0, 0.01)
+                        elif sensor_type == 'piezometer':
+                            base_value = 100 + 20 * np.sin(day * np.pi / 15)  # Seasonal variation
+                            noise = random.gauss(0, 2)
+                        else:
+                            base_value = (range_max - range_min) / 2
+                            noise = random.gauss(0, (range_max - range_min) * 0.02)
+                        
+                        measurement_value = base_value + noise
+                        
+                        # Ensure within sensor range
+                        measurement_value = max(min(measurement_value, float(range_max)), float(range_min))
+                        
+                        reading_data = {
+                            'station_id': station_id,
+                            'parameter_type': sensor_type,
+                            'measurement_value': measurement_value,
+                            'unit': self.get_sensor_unit(sensor_type),
+                            'measurement_timestamp': timestamp,
+                            'quality_code': 'good' if random.random() > 0.05 else 'fair',
+                            'sensor_modality': 'structural'
+                        }
+                        
+                        insert_query = """
+                            INSERT INTO sensor_readings (
+                                station_id, parameter_type, measurement_value,
+                                unit, measurement_timestamp, quality_code, sensor_modality
+                            ) VALUES (
+                                %(station_id)s, %(parameter_type)s, %(measurement_value)s,
+                                %(unit)s, %(measurement_timestamp)s, %(quality_code)s,
+                                %(sensor_modality)s
+                            )
+                        """
+                        cursor.execute(insert_query, reading_data)
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            logger.info("SHM sensor data generated successfully")
+            
+        except Exception as e:
+            logger.error(f"Error generating SHM sensor data: {e}")
+
+    def get_sensor_unit(self, sensor_type: str) -> str:
+        """Get unit for sensor type"""
+        units = {
+            'strain_gauge': 'microstrain',
+            'fiber_optic': 'microstrain',
+            'accelerometer': 'g',
+            'tiltmeter': 'degrees',
+            'piezometer': 'kPa',
+            'displacement': 'mm',
+            'crack_meter': 'mm'
+        }
+        return units.get(sensor_type, 'unit')
+
     def run_full_collection(self):
         """
         Run the complete data collection pipeline
@@ -462,9 +651,17 @@ class DamDataCollector:
             logger.info("=== Setting Up Monitoring Infrastructure ===")
             self.create_sample_monitoring_stations()
             
+            # NEW: Add SHM sensors
+            logger.info("=== Creating SHM Sensors ===")
+            self.create_shm_sensors()
+            
             # Step 3: Generate sample sensor data
             logger.info("=== Generating Sample Sensor Data ===")
             self.generate_sample_sensor_data(days=30)
+            
+            # NEW: Generate SHM sensor data
+            logger.info("=== Generating SHM Sensor Data ===")
+            self.generate_shm_sensor_data(days=30)
             
             logger.info("Data collection pipeline completed successfully!")
             
