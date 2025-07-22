@@ -5,8 +5,6 @@ Database Enrichment Script - Add GDW Metadata to Existing Dam Database
 This script enriches the cleaned database with comprehensive metadata from
 the GDW barriers text file, adding 20+ valuable research fields.
 
-Author: Dam Monitoring Research Team
-Date: 2024
 """
 
 import os
