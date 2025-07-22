@@ -1,0 +1,25 @@
+{
+  "total_dams": 76440.0,
+  "countries_covered": 165.0,
+  "construction_period": [
+    1806.0,
+    2022.0
+  ],
+  "geographic_span": {
+    "longitude": [
+      -159.46233928811026,
+      178.1546675410001
+    ],
+    "latitude": [
+      -45.87950399999994,
+      70.38462500000003
+    ]
+  },
+  "top_5_countries": {
+    "China": 14780,
+    "India": 13292,
+    "Brazil": 10277,
+    "United Sta": 9327,
+    "South Afri": 3003
+  }
+}
