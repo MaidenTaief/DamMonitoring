@@ -1,0 +1,23 @@
+{
+  "analysis_date": "2025-07-22T21:06:54.883928",
+  "database_records": 76440,
+  "enrichment_records": 9311,
+  "generated_tables": [
+    "database_overview.csv",
+    "infrastructure_types.csv",
+    "height_categories.csv",
+    "primary_purposes.csv",
+    "usage_patterns.csv",
+    "country_analysis.csv",
+    "river_basin_analysis.csv",
+    "capacity_analysis.csv",
+    "construction_timeline.csv",
+    "data_completeness.csv"
+  ],
+  "reports": [
+    "executive_summary.md"
+  ],
+  "exports": [
+    "analysis_statistics.json"
+  ]
+}

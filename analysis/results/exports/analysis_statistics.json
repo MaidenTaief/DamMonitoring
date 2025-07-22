@@ -1,0 +1,353 @@
+{
+  "generation_timestamp": "2025-07-22 21:06:54",
+  "dataset_overview": [
+    {
+      "dataset": "Original Dams Table",
+      "record_count": 76440,
+      "countries": 165,
+      "earliest_year": 1806,
+      "latest_year": 2022,
+      "avg_height_m": 41.61,
+      "max_height_m": 335.0
+    },
+    {
+      "dataset": "Enrichment Metadata",
+      "record_count": 9311,
+      "countries": 114,
+      "earliest_year": 1806,
+      "latest_year": 2022,
+      "avg_height_m": 41.68,
+      "max_height_m": 335.0
+    },
+    {
+      "dataset": "Combined Enriched View",
+      "record_count": 77352,
+      "countries": 165,
+      "earliest_year": 1806,
+      "latest_year": 2022,
+      "avg_height_m": 41.59,
+      "max_height_m": 335.0
+    }
+  ],
+  "infrastructure_summary": {
+    "total_types": 4,
+    "dominant_type": "Dam",
+    "type_distribution": [
+      {
+        "infrastructure_type": "Dam",
+        "dam_count": 38910,
+        "percentage": 94.57,
+        "avg_height_m": 41.88,
+        "avg_capacity_mcm": 194.85,
+        "hydropower_count": 2785,
+        "irrigation_count": 2508
+      },
+      {
+        "infrastructure_type": "Lock",
+        "dam_count": 1152,
+        "percentage": 2.8,
+        "avg_height_m": 17.0,
+        "avg_capacity_mcm": 25.01,
+        "hydropower_count": 0,
+        "irrigation_count": 0
+      },
+      {
+        "infrastructure_type": "Low Permeable Dam",
+        "dam_count": 886,
+        "percentage": 2.15,
+        "avg_height_m": 6.67,
+        "avg_capacity_mcm": 55.33,
+        "hydropower_count": 1,
+        "irrigation_count": 0
+      },
+      {
+        "infrastructure_type": "Lake Control Dam",
+        "dam_count": 197,
+        "percentage": 0.48,
+        "avg_height_m": 25.07,
+        "avg_capacity_mcm": 3273.37,
+        "hydropower_count": 91,
+        "irrigation_count": 6
+      }
+    ]
+  },
+  "usage_summary": {
+    "total_purposes": 11,
+    "primary_purpose": "Unspecified",
+    "purpose_distribution": [
+      {
+        "primary_purpose": "Unspecified",
+        "dam_count": 32710,
+        "percentage": 79.5,
+        "avg_height_m": 49.03,
+        "avg_capacity_mcm": 31.48
+      },
+      {
+        "primary_purpose": "Hydroelectricity",
+        "dam_count": 2214,
+        "percentage": 5.38,
+        "avg_height_m": 64.6,
+        "avg_capacity_mcm": 2245.74
+      },
+      {
+        "primary_purpose": "Irrigation",
+        "dam_count": 2047,
+        "percentage": 4.98,
+        "avg_height_m": 44.01,
+        "avg_capacity_mcm": 575.4
+      },
+      {
+        "primary_purpose": "Water supply",
+        "dam_count": 1247,
+        "percentage": 3.03,
+        "avg_height_m": 35.81,
+        "avg_capacity_mcm": 148.85
+      },
+      {
+        "primary_purpose": "Flood control",
+        "dam_count": 1017,
+        "percentage": 2.47,
+        "avg_height_m": 31.7,
+        "avg_capacity_mcm": 517.38
+      },
+      {
+        "primary_purpose": "Multipurpose",
+        "dam_count": 787,
+        "percentage": 1.91,
+        "avg_height_m": 21.61,
+        "avg_capacity_mcm": 18.17
+      },
+      {
+        "primary_purpose": "Recreation",
+        "dam_count": 741,
+        "percentage": 1.8,
+        "avg_height_m": 16.73,
+        "avg_capacity_mcm": 69.13
+      },
+      {
+        "primary_purpose": "Other",
+        "dam_count": 238,
+        "percentage": 0.58,
+        "avg_height_m": 20.11,
+        "avg_capacity_mcm": 87.29
+      },
+      {
+        "primary_purpose": "Navigation",
+        "dam_count": 63,
+        "percentage": 0.15,
+        "avg_height_m": 29.46,
+        "avg_capacity_mcm": 1698.5
+      },
+      {
+        "primary_purpose": "Pollution control",
+        "dam_count": 45,
+        "percentage": 0.11,
+        "avg_height_m": 33.58,
+        "avg_capacity_mcm": 28.37
+      }
+    ]
+  },
+  "geographic_summary": {
+    "countries_analyzed": 25,
+    "leading_country": "China",
+    "country_distribution": [
+      {
+        "country_code": "China",
+        "total_dams": 15048,
+        "enriched_dams": 2226,
+        "enrichment_coverage": 14.8,
+        "avg_height": 59.12,
+        "max_height": 312.0,
+        "hydropower_dams": 774,
+        "irrigation_dams": 784
+      },
+      {
+        "country_code": "India",
+        "total_dams": 13304,
+        "enriched_dams": 724,
+        "enrichment_coverage": 5.4,
+        "avg_height": 39.98,
+        "max_height": 261.0,
+        "hydropower_dams": 164,
+        "irrigation_dams": 540
+      },
+      {
+        "country_code": "Brazil",
+        "total_dams": 10321,
+        "enriched_dams": 607,
+        "enrichment_coverage": 5.9,
+        "avg_height": 53.74,
+        "max_height": 209.0,
+        "hydropower_dams": 329,
+        "irrigation_dams": 26
+      },
+      {
+        "country_code": "United Sta",
+        "total_dams": 9713,
+        "enriched_dams": 8968,
+        "enrichment_coverage": 92.3,
+        "avg_height": 24.96,
+        "max_height": 235.0,
+        "hydropower_dams": 1258,
+        "irrigation_dams": 1322
+      },
+      {
+        "country_code": "South Afri",
+        "total_dams": 3035,
+        "enriched_dams": 596,
+        "enrichment_coverage": 19.6,
+        "avg_height": 26.83,
+        "max_height": 107.0,
+        "hydropower_dams": 17,
+        "irrigation_dams": 242
+      },
+      {
+        "country_code": "Zimbabwe",
+        "total_dams": 2180,
+        "enriched_dams": 214,
+        "enrichment_coverage": 9.8,
+        "avg_height": 29.42,
+        "max_height": 128.0,
+        "hydropower_dams": 4,
+        "irrigation_dams": 138
+      },
+      {
+        "country_code": "Japan",
+        "total_dams": 1610,
+        "enriched_dams": 1140,
+        "enrichment_coverage": 70.8,
+        "avg_height": 57.06,
+        "max_height": 186.0,
+        "hydropower_dams": 97,
+        "irrigation_dams": 69
+      },
+      {
+        "country_code": "Turkey",
+        "total_dams": 1329,
+        "enriched_dams": 290,
+        "enrichment_coverage": 21.8,
+        "avg_height": 84.72,
+        "max_height": 249.0,
+        "hydropower_dams": 98,
+        "irrigation_dams": 81
+      },
+      {
+        "country_code": "Mexico",
+        "total_dams": 1252,
+        "enriched_dams": 230,
+        "enrichment_coverage": 18.4,
+        "avg_height": 70.26,
+        "max_height": 261.0,
+        "hydropower_dams": 72,
+        "irrigation_dams": 158
+      },
+      {
+        "country_code": "France",
+        "total_dams": 1124,
+        "enriched_dams": 225,
+        "enrichment_coverage": 20.0,
+        "avg_height": 60.41,
+        "max_height": 180.0,
+        "hydropower_dams": 113,
+        "irrigation_dams": 76
+      },
+      {
+        "country_code": "Australia",
+        "total_dams": 1097,
+        "enriched_dams": 390,
+        "enrichment_coverage": 35.6,
+        "avg_height": 48.14,
+        "max_height": 180.0,
+        "hydropower_dams": 110,
+        "irrigation_dams": 140
+      },
+      {
+        "country_code": "Vietnam",
+        "total_dams": 1049,
+        "enriched_dams": 93,
+        "enrichment_coverage": 8.9,
+        "avg_height": 81.02,
+        "max_height": 283.0,
+        "hydropower_dams": 75,
+        "irrigation_dams": 20
+      },
+      {
+        "country_code": "Spain",
+        "total_dams": 1044,
+        "enriched_dams": 519,
+        "enrichment_coverage": 49.7,
+        "avg_height": 68.5,
+        "max_height": 202.0,
+        "hydropower_dams": 263,
+        "irrigation_dams": 280
+      },
+      {
+        "country_code": "Canada",
+        "total_dams": 827,
+        "enriched_dams": 498,
+        "enrichment_coverage": 60.2,
+        "avg_height": 40.91,
+        "max_height": 243.0,
+        "hydropower_dams": 328,
+        "irrigation_dams": 48
+      },
+      {
+        "country_code": "Russia",
+        "total_dams": 637,
+        "enriched_dams": 110,
+        "enrichment_coverage": 17.3,
+        "avg_height": 57.0,
+        "max_height": 242.0,
+        "hydropower_dams": 86,
+        "irrigation_dams": 20
+      }
+    ]
+  },
+  "quality_metrics": {
+    "average_completeness": 44.79285714285714,
+    "field_completeness": [
+      {
+        "field_name": "Infrastructure Type",
+        "complete_count": 41145,
+        "total_count": 41145,
+        "completeness_percentage": 100.0
+      },
+      {
+        "field_name": "Capacity Data",
+        "complete_count": 35334,
+        "total_count": 41145,
+        "completeness_percentage": 85.88
+      },
+      {
+        "field_name": "Construction Year",
+        "complete_count": 15211,
+        "total_count": 41145,
+        "completeness_percentage": 36.97
+      },
+      {
+        "field_name": "Dam Names",
+        "complete_count": 10071,
+        "total_count": 41145,
+        "completeness_percentage": 24.48
+      },
+      {
+        "field_name": "River Information",
+        "complete_count": 9501,
+        "total_count": 41145,
+        "completeness_percentage": 23.09
+      },
+      {
+        "field_name": "Height Data",
+        "complete_count": 9311,
+        "total_count": 41145,
+        "completeness_percentage": 22.63
+      },
+      {
+        "field_name": "Primary Purpose",
+        "complete_count": 8435,
+        "total_count": 41145,
+        "completeness_percentage": 20.5
+      }
+    ]
+  }
+}
