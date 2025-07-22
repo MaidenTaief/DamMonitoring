@@ -137,6 +137,7 @@ This project uses data from Global Dam Watch (GDW) under academic research purpo
 
 ---
 
-**Contact**: Dam Monitoring Research Team  
-**Institution**: University Research Project  
+**Contact**: Abu Mohammad Taief
+**Email**: Taiefmaiden@gmail.com
+**Supervisor**: Harpal Singh 
 **Status**: Ready for Academic Submission
