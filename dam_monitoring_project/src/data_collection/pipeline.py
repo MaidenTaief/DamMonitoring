@@ -181,6 +181,14 @@ class DamDataCollector:
             logger.error(f"Error collecting GOODD data: {e}")
             return pd.DataFrame()
     
+    def check_dam_exists(self, cursor, dam_name, country_code):
+        """Check if dam already exists in database"""
+        cursor.execute("""
+            SELECT dam_id FROM dams 
+            WHERE dam_name = %s AND country_code = %s
+        """, (dam_name, country_code))
+        return cursor.fetchone() is not None
+
     def process_and_insert_dams(self, df: pd.DataFrame, source_name: str) -> int:
         """
         Process and insert dam data into the database
@@ -210,12 +218,18 @@ class DamDataCollector:
                 try:
                     # Get region ID
                     region_id = region_map.get(row.get('country'))
+                    country_code = self.get_country_code(row.get('country'))
+                    dam_name = row.get('dam_name', '')
+                    # Check for duplicates
+                    if self.check_dam_exists(cursor, dam_name, country_code):
+                        logger.info(f"Skipping duplicate dam: {dam_name} ({country_code})")
+                        continue
                     
                     # Prepare dam data
                     dam_data = {
                         'dam_name': row.get('dam_name', ''),
                         'region_id': region_id,
-                        'country_code': self.get_country_code(row.get('country')),
+                        'country_code': country_code,
                         'coordinates': f"POINT({row.get('longitude', 0)} {row.get('latitude', 0)})",
                         'height_meters': row.get('height_m'),
                         'normal_capacity_mcm': row.get('capacity_mcm'),
@@ -632,6 +646,36 @@ class DamDataCollector:
             'crack_meter': 'mm'
         }
         return units.get(sensor_type, 'unit')
+
+    def generate_comprehensive_dam_data(self):
+        """Generate realistic dam inventory for all three countries (stub for future expansion)"""
+        dam_templates = {
+            'Norway': {
+                'count': 335,  # Norway has ~335 large dams
+                'height_range': (15, 200),
+                'capacity_range': (10, 5000),
+                'year_range': (1920, 2020),
+                'types': ['embankment', 'concrete', 'arch', 'gravity'],
+                'purposes': ['hydropower', 'water_supply', 'flood_control']
+            },
+            'India': {
+                'count': 5334,  # India has 5000+ large dams
+                'height_range': (15, 261),
+                'capacity_range': (1, 12000),
+                'year_range': (1900, 2023),
+                'types': ['embankment', 'gravity', 'arch', 'rockfill'],
+                'purposes': ['irrigation', 'hydropower', 'multipurpose', 'flood_control']
+            },
+            'Bangladesh': {
+                'count': 320,  # Bangladesh has ~320 dams/embankments
+                'height_range': (5, 60),
+                'capacity_range': (1, 11000),
+                'year_range': (1960, 2020),
+                'types': ['embankment', 'concrete'],
+                'purposes': ['flood_control', 'irrigation', 'water_supply']
+            }
+        }
+        # Implementation to be added
 
     def run_full_collection(self):
         """

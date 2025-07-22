@@ -39,34 +39,31 @@ class DamSensorDataset(Dataset):
     def _create_sequences(self) -> List[Dict]:
         """Create sequences for transformer input"""
         sequences = []
-        
-        # Group by dam and create time windows
         for dam_id in self.data['dam_id'].unique():
             dam_data = self.data[self.data['dam_id'] == dam_id]
-            
-            # Sort by timestamp
             dam_data = dam_data.sort_values('measurement_timestamp')
-            
-            # Create sliding windows
-            for i in range(len(dam_data) - self.sequence_length):
-                seq_data = dam_data.iloc[i:i + self.sequence_length]
-                
-                # Create multi-modal feature matrix
-                features = []
-                for param in self.parameters:
-                    param_data = seq_data[seq_data['parameter_type'] == param]
-                    if len(param_data) > 0:
-                        features.append(param_data['measurement_value'].values)
-                
-                if features:
+            timestamps = dam_data['measurement_timestamp'].unique()
+            for i in range(len(timestamps) - self.sequence_length):
+                seq_timestamps = timestamps[i:i + self.sequence_length]
+                feature_matrix = []
+                for ts in seq_timestamps:
+                    ts_data = dam_data[dam_data['measurement_timestamp'] == ts]
+                    features = []
+                    for param in self.parameters:
+                        param_value = ts_data[ts_data['parameter_type'] == param]['measurement_value'].values
+                        if len(param_value) > 0:
+                            features.append(param_value[0])
+                        else:
+                            features.append(0.0)
+                    feature_matrix.append(features)
+                if len(feature_matrix) == self.sequence_length:
                     sequence = {
-                        'features': np.array(features).T,  # (seq_len, n_features)
-                        'label': seq_data[self.label_column].iloc[-1] if self.label_column in seq_data else 0,
+                        'features': np.array(feature_matrix),
+                        'label': 0,  # Default label, will be updated based on anomaly logic
                         'dam_id': dam_id,
-                        'timestamp': seq_data['measurement_timestamp'].iloc[-1]
+                        'timestamp': seq_timestamps[-1]
                     }
                     sequences.append(sequence)
-        
         return sequences
     
     def __len__(self):
@@ -155,9 +152,12 @@ class DamAnomalyDetector:
         
     def load_sensor_data(self, days: int = 30) -> pd.DataFrame:
         """Load sensor data from database"""
-        conn = psycopg2.connect(**self.db_config)
-        
-        query = """
+        from sqlalchemy import create_engine
+        engine = create_engine(
+            f"postgresql://{self.db_config['user']}:{self.db_config['password']}@"
+            f"{self.db_config['host']}:{self.db_config['port']}/{self.db_config['database']}"
+        )
+        query = f"""
         SELECT 
             d.dam_id,
             d.dam_name,
@@ -169,16 +169,11 @@ class DamAnomalyDetector:
         FROM sensor_readings sr
         JOIN monitoring_stations ms ON sr.station_id = ms.station_id
         JOIN dams d ON ms.dam_id = d.dam_id
-        WHERE sr.measurement_timestamp > NOW() - INTERVAL '%s days'
+        WHERE sr.measurement_timestamp > NOW() - INTERVAL '{days} days'
         ORDER BY d.dam_id, sr.measurement_timestamp
         """
-        
-        df = pd.read_sql(query, conn, params=(days,))
-        conn.close()
-        
-        # Create synthetic anomaly labels for training
+        df = pd.read_sql(query, engine)
         df['anomaly'] = self._create_synthetic_anomalies(df)
-        
         return df
     
     def _create_synthetic_anomalies(self, df: pd.DataFrame, anomaly_rate: float = 0.05) -> np.ndarray:
